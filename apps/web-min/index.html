@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DevForge Ultra — Chat</title>
+<style>
+  :root{--bg:#0b0f19;--pane:#0f1424;--pane2:#0f172a;--fg:#e6eeff;--muted:#9fb5d6;--border:#1f2b46;--ai:#0f223f;--user:#1e3a8a;--brand:#22c55e}
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;background:radial-gradient(900px 900px at 0% 0%,#0b1230,#0b0f19);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+  .layout{display:grid;grid-template-columns:300px 1fr;height:100%}
+  .sidebar{background:var(--pane);border-right:1px solid var(--border);display:flex;flex-direction:column}
+  .sb-header{padding:12px;border-bottom:1px solid var(--border)}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700}
+  .logo{width:18px;height:18px;border-radius:6px;background:conic-gradient(from 0deg,#22c55e,#60a5fa,#fb7185,#22c55e)}
+  .newchat{margin-top:10px;width:100%;border:1px solid var(--border);background:#0b1730;color:#cfe3ff;border-radius:10px;padding:10px;cursor:pointer}
+  .tabs{display:flex;gap:6px;padding:10px}
+  .tab{flex:1;text-align:center;padding:8px;border-radius:8px;border:1px solid var(--border);background:#0e1a34;cursor:pointer;font-size:12px}
+  .tab.active{outline:2px solid #2a4a7e}
+  .convos{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+  .convo{padding:10px;border-radius:8px;background:#0e1a34;border:1px solid var(--border);cursor:pointer}
+  .convo.active{outline:2px solid #2a4a7e}
+  .sb-footer{padding:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .main{display:flex;flex-direction:column;background:var(--pane2)}
+  .topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--pane)}
+  .pill{font-size:12px;border:1px solid var(--border);padding:4px 10px;border-radius:999px}
+  .content{flex:1;display:flex;overflow:hidden}
+  .panel{display:none;flex:1}
+  .panel.active{display:flex}
+  .messages{flex:1;overflow:auto;padding:16px;max-width:920px;margin:0 auto;width:100%}
+  .bubble{padding:12px 14px;margin:10px 0;border-radius:14px;line-height:1.6;white-space:pre-wrap;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .ai{background:var(--ai);border:1px solid #153457}
+  .user{background:var(--user);border:1px solid #204a9b;margin-left:auto}
+  .composer{padding:12px 16px;border-top:1px solid var(--border);background:var(--pane)}
+  .bar{max-width:920px;margin:0 auto;display:flex;gap:8px;align-items:center}
+  .upload{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:#0f1d39;color:#dbe7ff;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center}
+  .input{flex:1;background:#0f1d39;border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:#eef2ff;outline:none}
+  .send{background:var(--brand);border:none;color:#001;padding:12px 16px;border-radius:12px;cursor:pointer;font-weight:700}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;max-width:920px;margin:6px auto 0}
+  .chip{font-size:12px;background:#113156;border:1px solid #254b7a;color:#cfe3ff;padding:4px 8px;border-radius:999px}
+  .files-wrap,.settings-wrap{flex:1;overflow:auto;padding:16px;max-width:920px;margin:0 auto;width:100%}
+  .file-row{background:#0f1d39;border:1px solid var(--border);padding:10px;border-radius:10px;margin:6px 0;display:flex;justify-content:space-between}
+  .md pre{background:#091120;border:1px solid #122038;padding:12px;border-radius:10px;overflow:auto;position:relative}
+  .copy-btn{position:absolute;top:8px;right:8px;background:#1e293b;color:#e6e6e6;border:1px solid #3b4a62;border-radius:8px;padding:4px 8px;font-size:12px;cursor:pointer}
+  .md code.inline{background:#091120;border:1px solid #122038;padding:2px 6px;border-radius:6px}
+  .md img{max-width:100%;border-radius:10px;border:1px solid #284361;display:block;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-header">
+      <div class="brand"><div class="logo"></div> DevForge Ultra</div>
+      <button class="newchat" id="newChatBtn">+ New chat</button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="chat">Chat</div>
+      <div class="tab" data-tab="files">Files</div>
+      <div class="tab" data-tab="settings">Settings</div>
+    </div>
+    <div class="convos" id="convos"></div>
+    <div class="sb-footer">Chats are stored locally.</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="pill" id="modelPill">Auto model</div>
+      <div class="pill" id="modePill">Ensemble</div>
+      <div style="margin-left:auto;font-size:12px;color:#bcd0f2">API: http://127.0.0.1:8007</div>
+    </div>
+
+    <div class="content">
+      <!-- Chat -->
+      <section class="panel active" id="panel-chat">
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <div class="bar">
+            <button class="upload" id="uploadBtn" title="Upload images/files">+</button>
+            <input id="fileInput" type="file" multiple style="display:none" accept="*/*"/>
+            <input class="input" id="input" placeholder='Try: /imagine a new game • /image "neon lion" • /video skyline --dur 6 • /file pdf "Hello" name=hello.pdf' autocomplete="off"/>
+            <button class="send" id="sendBtn">Send</button>
+          </div>
+          <div class="chips" id="chips"></div>
+        </div>
+      </section>
+
+      <!-- Files -->
+      <section class="panel" id="panel-files">
+        <div class="files-wrap">
+          <h3>Generated files</h3>
+          <div id="filesList"></div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section class="panel" id="panel-settings">
+        <div class="settings-wrap">
+          <h3>Settings</h3>
+          <div>Provider status: <code id="provStatus">loading…</code></div>
+          <div style="margin-top:8px"><button id="clearAll">Clear all local chats/files</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+const API='http://127.0.0.1:8007';
+const KEY_CONVOS='dfu_convos_v5', KEY_ACTIVE='dfu_active_v5', KEY_FILES='dfu_files_v5';
+
+let convos=JSON.parse(localStorage.getItem(KEY_CONVOS)||'[]');
+let active=localStorage.getItem(KEY_ACTIVE)||null;
+let files=JSON.parse(localStorage.getItem(KEY_FILES)||'[]');
+let pendingImages=[];
+
+function save(){ localStorage.setItem(KEY_CONVOS,JSON.stringify(convos)); localStorage.setItem(KEY_ACTIVE,active||''); localStorage.setItem(KEY_FILES,JSON.stringify(files)); }
+function newId(){ return Math.random().toString(36).slice(2); }
+function titleFrom(t){ return (t||'New chat').slice(0,48)||'New chat'; }
+
+function ensureActive(){
+  if(!active || !convos.find(c=>c.id===active)){
+    const c={id:newId(), title:'New chat', msgs:[]}; convos.unshift(c); active=c.id; save();
+  }
+}
+function setActive(id){ active=id; save(); renderConvos(); renderMessages(); }
+function newChat(){ const c={id:newId(), title:'New chat', msgs:[]}; convos.unshift(c); active=c.id; save(); renderConvos(); renderMessages(); pendingImages=[]; document.getElementById('chips').innerHTML=''; }
+
+function renderConvos(){
+  const el=document.getElementById('convos'); el.innerHTML='';
+  for(const c of convos){
+    const d=document.createElement('div');
+    d.className='convo'+(c.id===active?' active':''); d.textContent=c.title||'New chat'; d.onclick=()=>setActive(c.id);
+    el.appendChild(d);
+  }
+}
+
+function renderMarkdown(text){
+  text=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  text=text.replace(/```([a-zA-Z0-9]*)\n([\s\S]*?)```/g,(m,lang,code)=>{ const id='cb_'+newId(); return `<pre id="${id}"><button class="copy-btn" onclick="copyCode('${id}')">Copy</button><code>${code.replace(/`/g,"&#96;")}</code></pre>`; });
+  text=text.replace(/`([^`]+)`/g,'<code class="inline">$1</code>');
+  text=text.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  text=text.replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^# (.*)$/gm,'<h1>$1</h1>');
+  text=text.replace(/\n/g,'<br>');
+  return `<div class="md">${text}</div>`;
+}
+window.copyCode=(preId)=>{ const pre=document.getElementById(preId); const code=pre.querySelector('code').innerText; navigator.clipboard.writeText(code); const btn=pre.querySelector('.copy-btn'); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); };
+
+function addMsg(role,text,html=false){ const m=document.getElementById('messages'); const b=document.createElement('div'); b.className='bubble '+role; b.innerHTML=html?text:renderMarkdown(text); m.appendChild(b); m.scrollTop=m.scrollHeight; }
+function renderMessages(){ ensureActive(); const c=convos.find(c=>c.id===active); const m=document.getElementById('messages'); m.innerHTML=''; for(const x of c.msgs) addMsg(x.role,x.text,x.html); }
+
+document.querySelectorAll('.tab').forEach(t=> t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+  const name=t.dataset.tab; document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); document.getElementById('panel-'+name).classList.add('active');
+  if(name==='files') refreshFiles(); if(name==='settings') refreshDiag();
+});
+
+document.getElementById('uploadBtn').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=async(ev)=>{
+  const list=[...ev.target.files];
+  for(const f of list){
+    if(f.type.startsWith('image/')){
+      const url=await fileToDataURL(f); pendingImages.push(url);
+      addChip(`🖼 ${f.name}`); addMsg('user',`Attached image: ${f.name}`); addMsg('user',`<img src="${url}">`,true);
+    }else{
+      const fd=new FormData(); fd.append('file', f);
+      try{ await fetch(API+'/api/upload',{method:'POST', body:fd}); addChip(`📄 ${f.name}`); }catch(e){ alert('Upload failed: '+e); }
+    }
+  }
+  ev.target.value='';
+};
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function addChip(name){ const c=document.getElementById('chips'); const s=document.createElement('span'); s.className='chip'; s.textContent=name+' ✓'; c.appendChild(s); }
+
+function pushFile(name, url){ files.unshift({name,url,ts:Date.now()}); save(); refreshFiles(); }
+function refreshFiles(){
+  const wrap=document.getElementById('filesList'); wrap.innerHTML='';
+  if(!files.length){ wrap.innerHTML='<div style="opacity:.8">No files yet. Use /imagine (game), /file, /image, /video.</div>'; return; }
+  for(const f of files){
+    const row=document.createElement('div'); row.className='file-row';
+    row.innerHTML=`<div>${f.name}</div><div><a href="${f.url}" ${f.url.startsWith('http')?'':'download'}>Download</a></div>`;
+    wrap.appendChild(row);
+  }
+}
+
+function parseArgs(str){ const a={}; const rx=/(\w+)=("[^"]*"|\S+)/g; let m; while((m=rx.exec(str))){ const k=m[1]; let v=m[2]; if(v.startsWith('"')&&v.endsWith('"')) v=v.slice(1,-1); a[k]=v; } return a; }
+
+document.getElementById('sendBtn').onclick=send;
+document.getElementById('input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
+document.getElementById('newChatBtn').onclick=newChat;
+
+async function send(){
+  ensureActive();
+  const input=document.getElementById('input'); const raw=input.value.trim(); if(!raw && !pendingImages.length) return; input.value='';
+  const c=convos.find(c=>c.id===active);
+  c.msgs.push({role:'user',text:raw||'(image)'}); save(); addMsg('user',raw||'(image)'); addMsg('ai','…thinking');
+
+  try{
+    let a='';
+
+    if(raw.startsWith('/imagine ')){
+      const prompt=raw.replace('/imagine','').trim();
+      const r=await fetch(API+'/api/imagine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,n_seeds:5})});
+      const j=await r.json(); if(!r.ok) throw new Error(j.detail||JSON.stringify(j));
+      let html=renderMarkdown(j.final||'');
+      if(j.zip_url){ const url=API + j.zip_url; const name=j.zip_url.split('/').pop(); pushFile(name,url); html += `<br><a href="${url}" download>Download ${name}</a>`; }
+      if(j.alternates?.length){
+        const alts=j.alternates.map((t,i)=>`<details><summary>Alt ${i+1}</summary><div>${renderMarkdown(t)}</div></details>`).join("");
+        html += "<br>"+alts;
+      }
+      a=html;
+    }
+    else if(raw.startsWith('/image')){
+      const prompt=raw.replace('/image','').trim().replace(/^"+|"+$/g,'');
+      const r=await fetch(API+'/api/image/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+      const j=await r.json(); if(!r.ok) throw new Error(j.detail||JSON.stringify(j));
+      const url=j.url ? (API+j.url) : ('data:image/png;base64,'+j.b64);
+      const name=(j.url? j.url.split('/').pop() : `image_${Date.now()}.png`);
+      pushFile(name,url);
+      a=`**Generated Image**<br><br><img src="${url}"><br><a href="${url}" download>Download ${name}</a>`;
+    }
+    else if(raw.startsWith('/video')){
+      let prompt=raw.replace('/video','').trim(); let ar='1280:720', dur=5, img=null;
+      const mAr=raw.match(/--ar\s+([0-9:]+)/), mDur=raw.match(/--dur\s+(\d+)/), mImg=raw.match(/--img\s+(\S+)/);
+      if(mAr){ ar=mAr[1]; prompt=prompt.replace(mAr[0],'').trim(); }
+      if(mDur){ dur=parseInt(mDur[1],10); prompt=prompt.replace(mDur[0],'').trim(); }
+      if(mImg){ img=mImg[1]; prompt=prompt.replace(mImg[0],'').trim(); }
+      const s=await fetch(API+'/api/video/runway/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,aspect_ratio:ar,duration:dur,image_url:img||null})});
+      const js=await s.json(); if(!s.ok) throw new Error(js.detail||JSON.stringify(js));
+      let final=js;
+      while(!['SUCCEEDED','FAILED','CANCELLED','TIMEOUT'].includes(final.status||'')){
+        await new Promise(r=>setTimeout(r,2500));
+        const p=await fetch(API+'/api/video/runway/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:js.id})});
+        final=await p.json();
+      }
+      if(final.status==='SUCCEEDED'){
+        const url=final.output||final.result||(final.assets&&(final.assets.video||final.assets.url))||final.video||'';
+        if(url){ const name=`video_${Date.now()}.mp4`; pushFile(name,url); }
+        a=url?`**Generated Video**<br><br><video controls src="${url}" style="max-width:100%"></video><br><a href="${url}" download>Download video</a>`:"Video generated, but no URL returned.";
+      } else a=`Runway job ended: <b>${final.status}</b>`;
+    }
+    else if(pendingImages.length){
+      const img=pendingImages[pendingImages.length-1];
+      const r=await fetch(API+'/api/vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:raw||'Analyze this image', image_data_url:img})});
+      const j=await r.json(); a=j.answer||JSON.stringify(j,null,2); pendingImages=[]; document.getElementById('chips').innerHTML='';
+    }
+    else{
+      const r=await fetch(API+'/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:raw})});
+      const j=await r.json(); a=j.answer||j.revised||j.draft||JSON.stringify(j,null,2);
+    }
+
+    const m=document.getElementById('messages'); m.removeChild(m.lastChild);
+    c.msgs.push({role:'ai',text:a,html:true}); save(); addMsg('ai',a,true);
+    if(c.title==='New chat'&&raw){ c.title=titleFrom(raw); save(); renderConvos(); }
+  }catch(e){
+    const m=document.getElementById('messages'); m.removeChild(m.lastChild);
+    const err='Error: '+(e.message||e); c.msgs.push({role:'ai',text:err}); save(); addMsg('ai',err);
+  }
+}
+
+async function refreshDiag(){ try{ const j=await (await fetch(API+'/api/diag')).json(); document.getElementById('provStatus').textContent=JSON.stringify(j.providers); }catch(e){ document.getElementById('provStatus').textContent='API offline'; } }
+document.getElementById('clearAll').onclick=()=>{ if(!confirm('Clear all local chats/files?')) return; convos=[]; active=null; files=[]; pendingImages=[]; save(); renderConvos(); renderMessages(); refreshFiles(); document.getElementById('chips').innerHTML=''; };
+
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+
+function init(){ ensureActive(); renderConvos(); renderMessages(); refreshDiag(); refreshFiles(); }
+init();
+</script>
+</body>
+</html>
