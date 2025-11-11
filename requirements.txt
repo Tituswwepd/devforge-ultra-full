@@ -17,3 +17,14 @@ ccxt==4.3.82
 yfinance==0.2.43
 soundfile==0.12.1
 pydub==0.25.1
+fastapi
+uvicorn[standard]
+python-dotenv
+reportlab
+Pillow
+python-docx
+python-pptx
+pandas
+openpyxl
+XlsxWriter
+sentence-transformers
